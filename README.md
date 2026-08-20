@@ -2,6 +2,16 @@
 
 让 AI agent 在浏览器里设计 uGUI 界面、实时预览真实 Unity 交互，并一键构建为**工程内可交互、自带测试数据**的 uGUI prefab 的 DSH agent preset。
 
+## 实机演示
+
+<video src="https://raw.githubusercontent.com/BaronCyrus/dsh-ugui-preset/main/docs/demo.mp4" controls muted playsinline width="100%"></video>
+
+左侧为浏览器预览器，右侧为 Unity Game 视图：agent 产出 DSL → 浏览器实时交互 → 一键生成 prefab 到 Unity 工程内直接可玩（75 秒）。
+
+> 内嵌播放器若未显示，可直接查看 [docs/demo.mp4](docs/demo.mp4)。
+
+![实机演示：预览器与 Unity 双端对比](docs/demo-poster.jpg)
+
 ## 功能
 
 - **多画布设计器**：浏览器内可视化编辑 uGUI DSL（多 Canvas Workspace、稳定 nodeId、结构化验收）。
