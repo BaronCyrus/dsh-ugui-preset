@@ -4,11 +4,10 @@
 
 ## 实机演示
 
-左侧为浏览器预览器，右侧为 Unity Game 视图：agent 产出 DSL → 浏览器实时交互 → 一键生成 prefab 到 Unity 工程内直接可玩（75 秒）。
+过程：agent 产出 DSL → 浏览器实时交互 → 一键生成 prefab 到 Unity 工程内直接可玩（75 秒）。
 
-[![实机演示：预览器与 Unity 双端对比](docs/demo-poster.jpg)](docs/demo.mp4)
+https://github.com/user-attachments/assets/fae23504-ad3e-40ac-ab31-3ef53a69478b
 
-▶ 点击图片播放完整演示视频（[docs/demo.mp4](docs/demo.mp4)）。
 
 ## 功能
 
