@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 // 1. 文档 pin 的 uGUI PackageCache 版本必须与目标 Unity 工程实际运行版本一致（Unity 升级即漂移）
 // 2. 每个组件小节声明的源文件必须真实存在于 PackageCache 中
 // 目标工程来自 preset 根目录的 ugui.config.json；未配置（仓库刚 clone）时跳过并提示。
-const presetRoot = fileURLToPath(new URL('../../', import.meta.url))
+const presetRoot = fileURLToPath(new URL('../../../', import.meta.url))
 const doc = await readFile(new URL('../UNITY_SEMANTICS.md', import.meta.url), 'utf8')
 
 const pinMatch = doc.match(/uGUI pin\*\*:\s*`(com\.unity\.ugui@[0-9a-f]+)`/)
