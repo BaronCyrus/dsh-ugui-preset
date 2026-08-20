@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity CLI"
+  short_description: "Control Unity Editor and development Players"
+  default_prompt: "Use $unity-cli to inspect the selected Unity Editor or development Player and execute one schema-gated command."

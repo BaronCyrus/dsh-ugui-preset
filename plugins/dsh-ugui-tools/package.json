@@ -1,0 +1,22 @@
+{
+  "name": "dsh-local-ugui-tools",
+  "version": "0.17.0",
+  "private": true,
+  "scripts": {
+    "test": "node test/gesture-undo.test.cjs && node test/tree-collapse.test.cjs && node test/popout-window.test.cjs && node test/frozen-node-ids.test.mjs && node test/component-contract.test.mjs && node test/worker-components.test.mjs && node test/component-preview.test.cjs && node test/preview-interaction.test.cjs && node test/visual-acceptance.test.mjs && node test/view-script-build.test.mjs && node test/unity-semantics.test.mjs"
+  },
+  "description": "Preset-scoped multi-Canvas uGUI Workspace with a standalone-only browser designer, extended selectable, scrolling, masking and layout components, stable node IDs, safe gesture undo, image staging, and explicit Unity Prefab generation.",
+  "type": "module",
+  "main": "lib/host-noop.js",
+  "exports": {
+    ".": "./lib/host-noop.js",
+    "./client": "./lib/client.js",
+    "./host": "./lib/host.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  }
+}

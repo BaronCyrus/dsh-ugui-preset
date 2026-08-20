@@ -1,0 +1,50 @@
+{
+	"tabToggles": [
+		"node-08d12dfd52e51289",
+		"node-81af14c16a943c67",
+		"node-fa8cfb8582436645",
+		"node-736ae24999f29023"
+	],
+	"itemCellButtons": [
+		"node-4e114f5c2bb5ef8a",
+		"node-6526afd1c950e3df",
+		"node-7c3c104666ebd835",
+		"node-935170bb0486cc8b",
+		"node-aa66d130a221c0e0",
+		"node-c17c31a53fbcb536",
+		"node-d891921add57a98b",
+		"node-efa6f28f7af29de1",
+		"node-06bc5304188d9237",
+		"node-1dd1b379b628868c"
+	],
+	"itemCountTexts": [
+		"node-c6ef362043651968",
+		"node-de049695e1000dbd",
+		"node-f519f70a7e9b0213",
+		"node-0c2f577f1c35f669",
+		"node-2344b7f4b9d0eabe",
+		"node-3a5a1869576bdf14",
+		"node-516f78def506d369",
+		"node-6884d95392a1c7bf",
+		"node-7f9a39c8303cbc15",
+		"node-96af9a3dcdd7b06a"
+	],
+	"itemSelectedMarkers": [
+		"node-6c56f239a6d2e489",
+		"node-218217ff8e987c42",
+		"node-7a5da69ff5ad5e17",
+		"node-8e27cd36433ea2ef",
+		"node-1444657c3b4cbb74",
+		"node-6f284c7079ca94d1",
+		"node-bfa6f615110fac7a",
+		"node-24fa3684fffc367e",
+		"node-405aa507904d0359",
+		"node-9e726971b3534d2e"
+	],
+	"detailNameText": "node-0f8d8101e586da48",
+	"detailDescText": "node-adc4fab26b72a4c0",
+	"detailPriceText": "node-033d8b0e292a4cb0",
+	"useButton": "node-4bfc7463f15e6f37",
+	"sellButton": "node-886b67c5fd360426",
+	"goldText": "node-f1bbcd88b54a1e33"
+}

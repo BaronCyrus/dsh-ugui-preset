@@ -1,0 +1,6 @@
+# GitHub Sponsors / 赞助渠道配置
+# 参考 https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+# 开通 GitHub Sponsors 后取消注释：
+# github: BaronCyrus
+# 自定义链接（爱发电/面包多/收款页等）：
+# custom: ["https://your-sponsor-page.example.com"]

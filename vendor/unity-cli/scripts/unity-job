@@ -1,0 +1,806 @@
+#!/usr/bin/env python3
+"""Prepare, submit, verify, and recover durable Unity Editor jobs."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+UNITY_CLI_WRAPPER = SKILL_ROOT / "scripts" / "unity-cli"
+BOOTSTRAP_SOURCE = SKILL_ROOT / "assets" / "UnityCliJobBootstrap.cs"
+BOOTSTRAP_RELATIVE = Path("Assets/Editor/UnityCli/UnityCliJobBootstrap.cs")
+JOBS_RELATIVE = Path("Library/UnityCli/Jobs")
+PROTOCOL = "unity-cli-job-v1"
+SUBMIT_COMMAND = "unity_cli_submit_job"
+MANIFEST_SCHEMA_VERSION = 1
+COMPLETION_SCHEMA_VERSION = 1
+MAX_SOURCE_BYTES = 4 * 1024 * 1024
+MAX_SOURCE_BUNDLE_BYTES = 16 * 1024 * 1024
+MAX_INPUT_BYTES = 64 * 1024 * 1024
+MAX_INPUT_BUNDLE_BYTES = 256 * 1024 * 1024
+MAX_RESULT_BYTES = 64 * 1024 * 1024
+POLL_INTERVAL_SECONDS = 0.1
+JOB_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+INPUT_NAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
+RESERVED_CONFIG_FIELDS = {
+    "jobId",
+    "projectRoot",
+    "action",
+    "resultPath",
+    "bootstrapCompletionPath",
+    "compilerDiagnosticsPath",
+    "workerAssemblyPath",
+    "runnerLogPath",
+    "workerSourcePaths",
+    "workerSourceBundleSha256",
+    "inputBundleSha256",
+}
+
+
+class UnityJobOutcomeUnknown(ValueError):
+    """The Editor may have accepted or executed the exact job; recover it before rollback."""
+
+
+def fail(message: str) -> None:
+    raise ValueError(message)
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def atomic_write_bytes(path: Path, value: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(value)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, 0o644)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def publish_for_editor_user(project: Path, path: Path) -> None:
+    """Hand root-written artifacts to the project owner so the Unity Editor user can use them.
+
+    The Editor normally runs as a regular user: it must read job manifests/sources and write
+    result/completion/worker.dll back into the job directory. mkstemp/mkdtemp produce 0600/0700
+    root-only trees when this script runs under sudo, which makes the Editor reject the job
+    ("manifest size is invalid") or fail to publish results.
+    """
+    if getattr(os, "geteuid", lambda: -1)() != 0:
+        return
+    try:
+        project_stat = os.stat(project)
+    except OSError:
+        return
+    targets = [path, *path.rglob("*")]
+    try:
+        for target in targets:
+            os.chown(target, project_stat.st_uid, project_stat.st_gid)
+    except OSError:
+        for target in targets:
+            os.chmod(target, 0o777 if target.is_dir() else 0o666)
+
+
+def atomic_write_json(path: Path, value: object) -> None:
+    atomic_write_bytes(
+        path,
+        (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+    )
+
+
+def read_json_object(path: Path, label: str) -> dict:
+    if not path.is_file() or path.is_symlink():
+        fail(f"{label} is not a regular file: {path}")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        fail(f"{label} is not readable UTF-8 JSON: {path}: {exc}")
+    if not isinstance(value, dict):
+        fail(f"{label} must be a JSON object: {path}")
+    return value
+
+
+def project_root(raw: str | Path) -> Path:
+    project = Path(raw).expanduser().resolve()
+    required = (
+        project / "Assets",
+        project / "ProjectSettings" / "ProjectVersion.txt",
+        project / "Packages" / "manifest.json",
+    )
+    if not required[0].is_dir() or not required[1].is_file() or not required[2].is_file():
+        fail(f"Not a Unity project root: {project}")
+    return project
+
+
+def jobs_root(project: Path) -> Path:
+    return project / JOBS_RELATIVE
+
+
+def validate_job_id(job_id: str) -> str:
+    if not JOB_ID_PATTERN.fullmatch(job_id):
+        fail(
+            "Job id must match [A-Za-z0-9][A-Za-z0-9._-]{0,127}: "
+            + repr(job_id)
+        )
+    return job_id
+
+
+def parse_input_argument(raw: str) -> tuple[str, Path]:
+    name, separator, path = raw.partition("=")
+    if not separator or not path:
+        fail(f"--input must use FIELD=PATH: {raw!r}")
+    if not INPUT_NAME_PATTERN.fullmatch(name) or name in RESERVED_CONFIG_FIELDS:
+        fail(f"Input field name is invalid or reserved: {name!r}")
+    return name, Path(path)
+
+
+def default_job_id(action: str) -> str:
+    safe_action = re.sub(r"[^A-Za-z0-9._-]+", "-", action).strip("-._") or "job"
+    return (
+        dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+        + "_"
+        + safe_action[:48]
+        + "_"
+        + uuid.uuid4().hex[:8]
+    )
+
+
+def require_direct_job(project: Path, raw: str | Path) -> Path:
+    root = jobs_root(project).resolve(strict=False)
+    candidate_raw = Path(raw).expanduser()
+    if not candidate_raw.is_absolute():
+        candidate_raw = root / candidate_raw
+    if candidate_raw.is_symlink():
+        fail(f"Job directory cannot be a symlink: {candidate_raw}")
+    candidate = candidate_raw.resolve(strict=False)
+    try:
+        relative = candidate.relative_to(root)
+    except ValueError:
+        fail(f"Job directory escaped {root}: {candidate}")
+    if len(relative.parts) != 1 or not relative.parts[0]:
+        fail(f"Job must be one direct child of {root}: {candidate}")
+    validate_job_id(relative.parts[0])
+    return candidate
+
+
+def source_bundle_sha256(sources: list[tuple[str, bytes]]) -> str:
+    digest = hashlib.sha256()
+    for relative_path, source_bytes in sources:
+        path_bytes = relative_path.encode("utf-8")
+        digest.update(len(path_bytes).to_bytes(8, "big"))
+        digest.update(path_bytes)
+        digest.update(len(source_bytes).to_bytes(8, "big"))
+        digest.update(source_bytes)
+    return digest.hexdigest()
+
+
+def prepare_job(
+    project: Path,
+    *,
+    source_paths: list[Path],
+    entry_type: str,
+    entry_method: str,
+    action: str,
+    config_source: Path | None,
+    job_id: str | None,
+    input_paths: list[tuple[str, Path]] | None = None,
+) -> dict:
+    if not source_paths:
+        fail("At least one --source file is required.")
+    if not entry_type.strip() or not entry_method.strip():
+        fail("--entry-type and --entry-method must be non-empty.")
+    if not action.strip():
+        fail("--action must be non-empty.")
+    job_id = validate_job_id(job_id or default_job_id(action))
+    root = jobs_root(project)
+    root.mkdir(parents=True, exist_ok=True)
+    job = require_direct_job(project, job_id)
+    if job.exists():
+        fail(f"Job directory already exists: {job}")
+    staging = Path(tempfile.mkdtemp(prefix=f".{job_id}.preparing.", dir=root))
+    try:
+        sources_directory = staging / "sources"
+        sources_directory.mkdir()
+
+        copied_sources: list[tuple[str, bytes]] = []
+        source_entries: list[dict] = []
+        total_source_bytes = 0
+        for index, source_path_raw in enumerate(source_paths):
+            source_path = source_path_raw.expanduser().resolve()
+            if not source_path.is_file() or source_path.is_symlink():
+                fail(f"Worker source is not a regular file: {source_path}")
+            source_bytes = source_path.read_bytes()
+            if not source_bytes or len(source_bytes) > MAX_SOURCE_BYTES:
+                fail(
+                    f"Worker source size must be 1..{MAX_SOURCE_BYTES} bytes: "
+                    f"{source_path} ({len(source_bytes)})"
+                )
+            total_source_bytes += len(source_bytes)
+            if total_source_bytes > MAX_SOURCE_BUNDLE_BYTES:
+                fail(f"Worker source bundle exceeds {MAX_SOURCE_BUNDLE_BYTES} bytes.")
+            safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", source_path.name)
+            relative_path = f"sources/{index:03d}_{safe_name}"
+            destination = staging / relative_path
+            atomic_write_bytes(destination, source_bytes)
+            copied_sources.append((relative_path, source_bytes))
+            source_entries.append(
+                {
+                    "relativePath": relative_path,
+                    "sha256": sha256_bytes(source_bytes),
+                    "length": len(source_bytes),
+                }
+            )
+
+        copied_inputs: list[tuple[str, bytes]] = []
+        input_entries: list[dict] = []
+        total_input_bytes = 0
+        seen_input_names: set[str] = set()
+        requested_inputs = input_paths or []
+        if requested_inputs:
+            (staging / "inputs").mkdir()
+        for index, (name, input_path_raw) in enumerate(requested_inputs):
+            if not INPUT_NAME_PATTERN.fullmatch(name) or name in RESERVED_CONFIG_FIELDS:
+                fail(f"Input field name is invalid or reserved: {name!r}")
+            if name in seen_input_names:
+                fail(f"Input field name was repeated: {name}")
+            seen_input_names.add(name)
+            input_path = input_path_raw.expanduser().resolve()
+            if not input_path.is_file() or input_path.is_symlink():
+                fail(f"Job input is not a regular file: {input_path}")
+            input_bytes = input_path.read_bytes()
+            if not input_bytes or len(input_bytes) > MAX_INPUT_BYTES:
+                fail(
+                    f"Job input size must be 1..{MAX_INPUT_BYTES} bytes: "
+                    f"{input_path} ({len(input_bytes)})"
+                )
+            total_input_bytes += len(input_bytes)
+            if total_input_bytes > MAX_INPUT_BUNDLE_BYTES:
+                fail(f"Job input bundle exceeds {MAX_INPUT_BUNDLE_BYTES} bytes.")
+            safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", input_path.name)
+            relative_path = f"inputs/{index:03d}_{name}_{safe_name}"
+            atomic_write_bytes(staging / relative_path, input_bytes)
+            copied_inputs.append((relative_path, input_bytes))
+            input_entries.append(
+                {
+                    "name": name,
+                    "relativePath": relative_path,
+                    "sha256": sha256_bytes(input_bytes),
+                    "length": len(input_bytes),
+                }
+            )
+
+        if config_source is None:
+            config: dict = {}
+        else:
+            config = read_json_object(config_source.expanduser().resolve(), "Job config source")
+        result_path = job / "result.json"
+        completion_path = job / "completion.json"
+        diagnostics_path = job / "compiler_diagnostics.json"
+        assembly_path = job / "worker.dll"
+        runner_log_path = job / "runner.log"
+        config.update(
+            {
+                "jobId": job_id,
+                "projectRoot": str(project),
+                "action": action,
+                "resultPath": str(result_path),
+                "bootstrapCompletionPath": str(completion_path),
+                "compilerDiagnosticsPath": str(diagnostics_path),
+                "workerAssemblyPath": str(assembly_path),
+                "runnerLogPath": str(runner_log_path),
+                "workerSourcePaths": [str(job / item["relativePath"]) for item in source_entries],
+                "workerSourceBundleSha256": source_bundle_sha256(copied_sources),
+                "inputBundleSha256": source_bundle_sha256(copied_inputs),
+            }
+        )
+        for entry in input_entries:
+            config[entry["name"]] = str(job / entry["relativePath"])
+        staging_config_path = staging / "config.json"
+        atomic_write_json(staging_config_path, config)
+        bundle_hash = source_bundle_sha256(copied_sources)
+        manifest = {
+            "schemaVersion": MANIFEST_SCHEMA_VERSION,
+            "protocol": PROTOCOL,
+            "jobId": job_id,
+            "action": action,
+            "entryType": entry_type,
+            "entryMethod": entry_method,
+            "configRelativePath": "config.json",
+            "configSha256": sha256_file(staging_config_path),
+            "sourceBundleSha256": bundle_hash,
+            "sources": source_entries,
+            "inputBundleSha256": source_bundle_sha256(copied_inputs),
+            "inputs": input_entries,
+        }
+        atomic_write_json(staging / "job.json", manifest)
+        if job.exists():
+            fail(f"Job directory appeared while preparing: {job}")
+        os.replace(staging, job)
+        publish_for_editor_user(project, job)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    manifest_path = job / "job.json"
+    config_path = job / "config.json"
+    return {
+        "protocol": PROTOCOL,
+        "jobId": job_id,
+        "jobDirectory": str(job),
+        "manifestPath": str(manifest_path),
+        "configPath": str(config_path),
+        "resultPath": str(result_path),
+        "completionPath": str(completion_path),
+        "compilerDiagnosticsPath": str(diagnostics_path),
+        "sourceBundleSha256": bundle_hash,
+        "inputBundleSha256": manifest["inputBundleSha256"],
+    }
+
+
+def validate_job(project: Path, raw_job: str | Path) -> dict:
+    job = require_direct_job(project, raw_job)
+    if not job.is_dir() or job.is_symlink():
+        fail(f"Job directory is missing or invalid: {job}")
+    manifest_path = job / "job.json"
+    manifest = read_json_object(manifest_path, "Job manifest")
+    expected_identity = {
+        "schemaVersion": MANIFEST_SCHEMA_VERSION,
+        "protocol": PROTOCOL,
+        "jobId": job.name,
+        "configRelativePath": "config.json",
+    }
+    for key, expected in expected_identity.items():
+        if manifest.get(key) != expected:
+            fail(f"Job manifest {key} is incompatible: {manifest.get(key)!r} != {expected!r}")
+    if not str(manifest.get("entryType") or "").strip() or not str(
+        manifest.get("entryMethod") or ""
+    ).strip():
+        fail("Job manifest entry type/method is missing.")
+    config_path = job / "config.json"
+    if sha256_file(config_path) != str(manifest.get("configSha256") or ""):
+        fail(f"Job config hash changed: {config_path}")
+
+    source_entries = manifest.get("sources")
+    if not isinstance(source_entries, list) or not source_entries:
+        fail("Job manifest sources must be a non-empty array.")
+    sources: list[tuple[str, bytes]] = []
+    for entry in source_entries:
+        if not isinstance(entry, dict):
+            fail("Job source entry must be an object.")
+        relative_path = str(entry.get("relativePath") or "")
+        source_path = (job / relative_path).resolve(strict=False)
+        try:
+            source_path.relative_to((job / "sources").resolve(strict=False))
+        except ValueError:
+            fail(f"Job source escaped the sources directory: {relative_path}")
+        if not source_path.is_file() or source_path.is_symlink():
+            fail(f"Job source is missing or invalid: {source_path}")
+        source_bytes = source_path.read_bytes()
+        if sha256_bytes(source_bytes) != str(entry.get("sha256") or "") or len(
+            source_bytes
+        ) != entry.get("length"):
+            fail(f"Job source hash/length changed: {source_path}")
+        sources.append((relative_path, source_bytes))
+    bundle_hash = source_bundle_sha256(sources)
+    if bundle_hash != str(manifest.get("sourceBundleSha256") or ""):
+        fail("Job source bundle hash changed.")
+    input_entries = manifest.get("inputs")
+    if not isinstance(input_entries, list):
+        fail("Job manifest inputs must be an array.")
+    inputs: list[tuple[str, bytes]] = []
+    seen_input_names: set[str] = set()
+    for entry in input_entries:
+        if not isinstance(entry, dict):
+            fail("Job input entry must be an object.")
+        name = str(entry.get("name") or "")
+        if not INPUT_NAME_PATTERN.fullmatch(name) or name in RESERVED_CONFIG_FIELDS:
+            fail(f"Job input name is invalid or reserved: {name!r}")
+        if name in seen_input_names:
+            fail(f"Job input name was repeated: {name}")
+        seen_input_names.add(name)
+        relative_path = str(entry.get("relativePath") or "")
+        input_path = (job / relative_path).resolve(strict=False)
+        try:
+            input_path.relative_to((job / "inputs").resolve(strict=False))
+        except ValueError:
+            fail(f"Job input escaped the inputs directory: {relative_path}")
+        if not input_path.is_file() or input_path.is_symlink():
+            fail(f"Job input is missing or invalid: {input_path}")
+        input_bytes = input_path.read_bytes()
+        if sha256_bytes(input_bytes) != str(entry.get("sha256") or "") or len(
+            input_bytes
+        ) != entry.get("length"):
+            fail(f"Job input hash/length changed: {input_path}")
+        inputs.append((relative_path, input_bytes))
+        config = read_json_object(config_path, "Job config")
+        if config.get(name) != str(input_path):
+            fail(f"Job config input path changed for {name}: {config.get(name)!r}")
+    input_bundle_hash = source_bundle_sha256(inputs)
+    if input_bundle_hash != str(manifest.get("inputBundleSha256") or ""):
+        fail("Job input bundle hash changed.")
+    return {
+        "jobDirectory": job,
+        "manifestPath": manifest_path,
+        "manifest": manifest,
+        "configPath": config_path,
+        "resultPath": job / "result.json",
+        "completionPath": job / "completion.json",
+        "sourceBundleSha256": bundle_hash,
+        "inputBundleSha256": input_bundle_hash,
+    }
+
+
+def validate_completion(project: Path, raw_job: str | Path) -> dict:
+    job = validate_job(project, raw_job)
+    result_path: Path = job["resultPath"]
+    completion_path: Path = job["completionPath"]
+    if not result_path.is_file() or result_path.is_symlink():
+        fail(f"Job result is missing or invalid: {result_path}")
+    result_length = result_path.stat().st_size
+    if result_length <= 0 or result_length > MAX_RESULT_BYTES:
+        fail(f"Job result size is invalid: {result_length}")
+    result = read_json_object(result_path, "Job result")
+    if type(result.get("success")) is not bool:
+        fail("Job result must contain a boolean success field.")
+    action = str(job["manifest"].get("action") or "")
+    if action and result.get("action") != action:
+        fail(f"Job result action changed: {result.get('action')!r} != {action!r}")
+    completion = read_json_object(completion_path, "Job completion")
+    expected = {
+        "schemaVersion": COMPLETION_SCHEMA_VERSION,
+        "protocol": PROTOCOL,
+        "status": "settled",
+        "jobId": job["jobDirectory"].name,
+        "action": action,
+        "manifestSha256": sha256_file(job["manifestPath"]),
+        "configSha256": sha256_file(job["configPath"]),
+        "sourceBundleSha256": job["sourceBundleSha256"],
+        "inputBundleSha256": job["inputBundleSha256"],
+        "resultSha256": sha256_file(result_path),
+        "resultLength": result_length,
+    }
+    actual = {key: completion.get(key) for key in expected}
+    if actual != expected:
+        fail(
+            "Job completion does not bind the immutable job/result: expected "
+            + json.dumps(expected, sort_keys=True)
+            + ", got "
+            + json.dumps(actual, sort_keys=True)
+        )
+    return {
+        "jobId": job["jobDirectory"].name,
+        "jobDirectory": str(job["jobDirectory"]),
+        "result": result,
+        "completion": completion,
+    }
+
+
+def wrapper_command(project: Path, unity: Path | None, arguments: list[str]) -> list[str]:
+    command = [str(UNITY_CLI_WRAPPER), "--project", str(project)]
+    if unity is not None:
+        command.extend(["--unity", str(unity)])
+    command.extend(arguments)
+    return command
+
+
+def run_json(command: list[str], timeout: int) -> dict:
+    try:
+        completed = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=max(1, timeout),
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise UnityJobOutcomeUnknown(
+            f"Command timed out with an unknown Editor outcome: {' '.join(command)}: {exc}"
+        ) from exc
+    except OSError as exc:
+        fail(f"Command failed: {' '.join(command)}: {exc}")
+    if completed.returncode != 0:
+        fail(
+            f"Command failed ({completed.returncode}): {' '.join(command)}\n"
+            + (completed.stderr.strip() or completed.stdout.strip())
+        )
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        fail(f"Command returned invalid JSON: {' '.join(command)}: {completed.stdout}")
+    if not isinstance(value, dict):
+        fail(f"Command returned {type(value).__name__}, expected object: {' '.join(command)}")
+    return value
+
+
+def wait_for_runner_schema(project: Path, unity: Path | None, timeout: int) -> dict:
+    deadline = time.monotonic() + max(1, timeout)
+    last_error = "schema was not queried"
+    requirements = [
+        "job_id:String:required",
+        "job_protocol:String:required",
+        "confirm:Boolean:optional",
+        "dry_run:Boolean:optional",
+    ]
+    while time.monotonic() < deadline:
+        arguments = ["schema", SUBMIT_COMMAND]
+        for requirement in requirements:
+            arguments.extend(["--require", requirement])
+        try:
+            return run_json(
+                wrapper_command(project, unity, arguments),
+                min(30, max(1, int(deadline - time.monotonic()))),
+            )
+        except ValueError as exc:
+            last_error = str(exc)
+            time.sleep(POLL_INTERVAL_SECONDS)
+    fail(f"Runner schema did not become available within {timeout}s: {last_error}")
+
+
+def install_runner(
+    project: Path,
+    unity: Path | None,
+    timeout: int,
+    verify_live: bool,
+    dry_run: bool = False,
+) -> dict:
+    if dry_run and verify_live:
+        fail("--dry-run and --verify-live cannot be combined.")
+    if not BOOTSTRAP_SOURCE.is_file():
+        fail(f"Bundled runner bootstrap is missing: {BOOTSTRAP_SOURCE}")
+    destination = project / BOOTSTRAP_RELATIVE
+    source_bytes = BOOTSTRAP_SOURCE.read_bytes()
+    changed = not destination.is_file() or destination.read_bytes() != source_bytes
+    if changed and not dry_run:
+        atomic_write_bytes(destination, source_bytes)
+        publish_for_editor_user(project, destination)
+    verification: dict = {
+        "status": "pending" if changed else "not_requested",
+        "message": "Run unity-job verify after the intended Editor finishes compiling.",
+    }
+    if verify_live:
+        run_json(
+            wrapper_command(project, unity, ["wait-ready", "--timeout", str(timeout)]),
+            timeout + 5,
+        )
+        needs_recompile = changed
+        if not needs_recompile:
+            try:
+                schema = wait_for_runner_schema(project, unity, min(timeout, 5))
+            except ValueError:
+                needs_recompile = True
+        if needs_recompile:
+            try:
+                run_json(
+                    wrapper_command(
+                        project, unity, ["run", "recompile", "--focus", "false"]
+                    ),
+                    min(timeout, 60),
+                )
+            except ValueError:
+                # The Pipeline socket may disappear as compilation/domain reload starts.
+                pass
+            run_json(
+                wrapper_command(project, unity, ["wait-ready", "--timeout", str(timeout)]),
+                timeout + 5,
+            )
+            schema = wait_for_runner_schema(project, unity, timeout)
+        verification = {"status": "verified", "schema": schema}
+    return {
+        "protocol": PROTOCOL,
+        "bootstrapPath": str(destination),
+        "changed": changed and not dry_run,
+        "wouldChange": changed,
+        "dryRun": dry_run,
+        "liveVerification": verification,
+    }
+
+
+def submit_or_recover(
+    project: Path,
+    *,
+    raw_job: str,
+    unity: Path | None,
+    timeout: int,
+    confirm: bool,
+    dry_run: bool,
+) -> tuple[int, dict]:
+    job = validate_job(project, raw_job)
+    if job["completionPath"].is_file():
+        settled = validate_completion(project, job["jobDirectory"])
+        return (0 if settled["result"]["success"] else 2), settled
+    if not confirm and not dry_run:
+        fail("Submitting a modifying Worker requires --confirm.")
+    run_json(
+        wrapper_command(project, unity, ["wait-ready", "--timeout", str(timeout)]),
+        timeout + 5,
+    )
+    wait_for_runner_schema(project, unity, timeout)
+    submission = run_json(
+        wrapper_command(
+            project,
+            unity,
+            [
+                "run",
+                SUBMIT_COMMAND,
+                "--job_id",
+                job["jobDirectory"].name,
+                "--job_protocol",
+                PROTOCOL,
+                "--confirm",
+                "true" if confirm else "false",
+                "--dry_run",
+                "true" if dry_run else "false",
+            ],
+        ),
+        min(timeout, 60),
+    )
+    if dry_run:
+        return 0, {"dryRun": True, "submission": submission, "jobId": job["jobDirectory"].name}
+    if submission.get("accepted") is False:
+        fail("Unity rejected the durable job: " + json.dumps(submission, ensure_ascii=False))
+    deadline = time.monotonic() + max(1, timeout)
+    last_error = "completion.json was not written"
+    while time.monotonic() < deadline:
+        if job["completionPath"].is_file():
+            try:
+                settled = validate_completion(project, job["jobDirectory"])
+                settled["submission"] = submission
+                return (0 if settled["result"]["success"] else 2), settled
+            except ValueError as exc:
+                last_error = str(exc)
+        time.sleep(POLL_INTERVAL_SECONDS)
+    raise UnityJobOutcomeUnknown(
+        f"Unity did not publish a valid completion for {job['jobDirectory'].name} "
+        f"within {timeout}s: {last_error}. Recover the same job; do not prepare a replacement."
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    def add_project_options(command_parser: argparse.ArgumentParser) -> None:
+        command_parser.add_argument("--project", required=True)
+        command_parser.add_argument("--unity", type=Path)
+        command_parser.add_argument("--timeout", type=int, default=600)
+
+    install = subparsers.add_parser("install", help="Install/update the project-owned runner bootstrap")
+    add_project_options(install)
+    install.add_argument("--verify-live", action="store_true")
+    install.add_argument("--dry-run", action="store_true")
+
+    verify = subparsers.add_parser("verify", help="Verify the live registered runner schema")
+    add_project_options(verify)
+
+    prepare = subparsers.add_parser("prepare", help="Create one immutable durable job")
+    prepare.add_argument("--project", required=True)
+    prepare.add_argument("--source", action="append", type=Path, required=True)
+    prepare.add_argument("--config", type=Path)
+    prepare.add_argument(
+        "--input",
+        action="append",
+        default=[],
+        metavar="FIELD=PATH",
+        help="Freeze a file and set FIELD in the job config to its immutable job-local path",
+    )
+    prepare.add_argument("--entry-type", required=True)
+    prepare.add_argument("--entry-method", default="Run")
+    prepare.add_argument("--action", required=True)
+    prepare.add_argument("--job-id")
+
+    submit = subparsers.add_parser("submit", help="Submit one prepared durable job")
+    add_project_options(submit)
+    submit.add_argument("--job", required=True)
+    submit.add_argument("--confirm", action="store_true")
+    submit.add_argument("--dry-run", action="store_true")
+
+    recover = subparsers.add_parser("recover", help="Resume the exact same durable job")
+    add_project_options(recover)
+    recover.add_argument("--job", required=True)
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    project = project_root(args.project)
+    if args.command == "install":
+        value = install_runner(
+            project, args.unity, args.timeout, args.verify_live, dry_run=args.dry_run
+        )
+        print(json.dumps(value, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "verify":
+        run_json(
+            wrapper_command(project, args.unity, ["wait-ready", "--timeout", str(args.timeout)]),
+            args.timeout + 5,
+        )
+        value = wait_for_runner_schema(project, args.unity, args.timeout)
+        print(json.dumps({"status": "verified", "protocol": PROTOCOL, "schema": value}, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "prepare":
+        value = prepare_job(
+            project,
+            source_paths=args.source,
+            entry_type=args.entry_type,
+            entry_method=args.entry_method,
+            action=args.action,
+            config_source=args.config,
+            job_id=args.job_id,
+            input_paths=[parse_input_argument(value) for value in args.input],
+        )
+        print(json.dumps(value, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "submit":
+        exit_code, value = submit_or_recover(
+            project,
+            raw_job=args.job,
+            unity=args.unity,
+            timeout=args.timeout,
+            confirm=args.confirm,
+            dry_run=args.dry_run,
+        )
+        print(json.dumps(value, ensure_ascii=False, indent=2))
+        return exit_code
+    if args.command == "recover":
+        exit_code, value = submit_or_recover(
+            project,
+            raw_job=args.job,
+            unity=args.unity,
+            timeout=args.timeout,
+            confirm=True,
+            dry_run=False,
+        )
+        print(json.dumps(value, ensure_ascii=False, indent=2))
+        return exit_code
+    fail(f"Unhandled command: {args.command}")
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except UnityJobOutcomeUnknown as exc:
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "outcomeKnown": False,
+                    "error": str(exc),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        raise SystemExit(4)
+    except (ValueError, OSError, json.JSONDecodeError) as exc:
+        print(f"unity-job: {exc}", file=sys.stderr)
+        raise SystemExit(2)

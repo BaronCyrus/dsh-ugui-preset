@@ -1,0 +1,7 @@
+{
+	"projectPath": "/absolute/path/to/YourUnityProject",
+	"scratchDir": ".scratch/ui-dsl",
+	"prefabDir": "Assets/AddressableResources/UIPrefab",
+	"scriptDir": "Assets/Scripts/UserInterface/Generated",
+	"assemblyName": "Assembly-CSharp"
+}

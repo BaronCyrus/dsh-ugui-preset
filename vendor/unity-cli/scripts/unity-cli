@@ -1,0 +1,616 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    printf '%s\n' \
+        'Usage:' \
+        '  unity-cli [--unity PATH] [--target editor] [--project PATH] status' \
+        '  unity-cli [--unity PATH] [--target editor] [--project PATH] wait-ready [--timeout N] [--interval N]' \
+        '  unity-cli [--unity PATH] [--target editor] [--project PATH] errors [--limit N] [--snapshot FILE | --diff FILE]' \
+        '  unity-cli [--unity PATH] [--target editor] [--project PATH] find TERM [TERM ...]' \
+        '  unity-cli [--unity PATH] [--target editor] [--project PATH] schema COMMAND [--require NAME[:TYPE[:required|optional]]] ...' \
+        '  unity-cli [--unity PATH] [--target editor] [--project PATH] run COMMAND [--PARAM VALUE ...]' \
+        '  unity-cli [--unity PATH] --target runtime (--runtime NAME | --runtime-path PATH) status' \
+        '  unity-cli [--unity PATH] --target runtime (--runtime NAME | --runtime-path PATH) find TERM [TERM ...]' \
+        '  unity-cli [--unity PATH] --target runtime (--runtime NAME | --runtime-path PATH) schema COMMAND [--require NAME[:TYPE[:required|optional]]] ...' \
+        '  unity-cli [--unity PATH] --target runtime (--runtime NAME | --runtime-path PATH) run COMMAND [--PARAM VALUE ...]'
+}
+
+fail() {
+    printf 'unity-cli: %s\n' "$*" >&2
+    exit 2
+}
+
+is_unity_project() {
+    local candidate=$1
+    [[ -d "$candidate/Assets" && -d "$candidate/ProjectSettings" && -f "$candidate/Packages/manifest.json" ]]
+}
+
+find_project_upward() {
+    local candidate=$1
+    local parent
+
+    candidate=$(cd "$candidate" 2>/dev/null && pwd -P) || return 1
+    while true; do
+        if is_unity_project "$candidate"; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+
+        parent=$(dirname "$candidate")
+        [[ "$parent" != "$candidate" ]] || return 1
+        candidate=$parent
+    done
+}
+
+project_argument=''
+unity_argument=''
+target_argument='editor'
+runtime_argument=''
+runtime_path_argument=''
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --project|--project-path)
+            [[ $# -ge 2 ]] || fail "$1 requires a path"
+            project_argument=$2
+            shift 2
+            ;;
+        --unity)
+            [[ $# -ge 2 ]] || fail "$1 requires a path"
+            unity_argument=$2
+            shift 2
+            ;;
+        --target)
+            [[ $# -ge 2 ]] || fail '--target requires editor or runtime'
+            target_argument=$2
+            shift 2
+            ;;
+        --runtime)
+            [[ $# -ge 2 ]] || fail '--runtime requires a Player process name'
+            runtime_argument=$2
+            shift 2
+            ;;
+        --runtime-path)
+            [[ $# -ge 2 ]] || fail '--runtime-path requires a Player directory or app bundle'
+            runtime_path_argument=$2
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+[[ $# -gt 0 ]] || {
+    usage >&2
+    exit 2
+}
+
+skill_script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+
+[[ "$target_argument" == 'editor' || "$target_argument" == 'runtime' ]] || fail '--target requires editor or runtime'
+
+project_path=''
+runtime_path=''
+runtime_descriptor=''
+runtime_descriptor_json=''
+target_selector=()
+
+if [[ "$target_argument" == 'editor' ]]; then
+    [[ -z "$runtime_argument" && -z "$runtime_path_argument" ]] || fail '--runtime and --runtime-path require --target runtime'
+    if [[ -n "$project_argument" ]]; then
+        project_path=$(cd "$project_argument" 2>/dev/null && pwd -P) || fail "project path does not exist: $project_argument"
+        is_unity_project "$project_path" || fail "not a Unity project root: $project_path"
+    elif project_path=$(find_project_upward "$PWD"); then
+        :
+    elif project_path=$(find_project_upward "$skill_script_dir"); then
+        :
+    else
+        fail 'could not find a Unity project; pass --project PATH'
+    fi
+    target_selector=(--project-path "$project_path")
+else
+    [[ -z "$project_argument" ]] || fail '--project cannot be combined with --target runtime'
+    [[ -z "$runtime_argument" || -z "$runtime_path_argument" ]] || fail '--runtime and --runtime-path are mutually exclusive'
+    [[ -n "$runtime_argument" || -n "$runtime_path_argument" ]] || fail '--target runtime requires --runtime NAME or --runtime-path PATH'
+    if [[ -n "$runtime_argument" ]]; then
+        [[ "$runtime_argument" != --* ]] || fail '--runtime requires a Player process name'
+        target_selector=(--runtime "$runtime_argument")
+    else
+        runtime_path=$(cd "$runtime_path_argument" 2>/dev/null && pwd -P) || fail "runtime path is not a directory: $runtime_path_argument"
+        runtime_descriptor="$runtime_path/.unity-pipeline-runtime-port"
+        [[ -f "$runtime_descriptor" && ! -L "$runtime_descriptor" ]] || fail "runtime descriptor is not a regular file: $runtime_descriptor"
+        target_selector=(--runtime-path "$runtime_path")
+    fi
+fi
+
+if [[ -n "$unity_argument" ]]; then
+    [[ -f "$unity_argument" && -x "$unity_argument" ]] || fail "Unity CLI is not an executable file: $unity_argument"
+    unity_directory=$(cd "$(dirname "$unity_argument")" 2>/dev/null && pwd -P) || fail "Unity CLI directory does not exist: $unity_argument"
+    unity_executable="$unity_directory/$(basename "$unity_argument")"
+else
+    unity_executable=$(command -v unity || true)
+    [[ -n "$unity_executable" ]] || fail 'official Unity CLI was not found on PATH; pass --unity PATH'
+fi
+command -v jq >/dev/null 2>&1 || fail 'jq was not found on PATH'
+
+if [[ -n "$runtime_descriptor" ]]; then
+    runtime_descriptor_json=$(jq -ce '
+        select(type == "object")
+        | select((.buildGuid | type) == "string" and (.buildGuid | length) > 0)
+        | select((.unityVersion | type) == "string" and (.unityVersion | length) > 0)
+        | select((.platform | type) == "string" and (.platform | length) > 0)
+    ' "$runtime_descriptor") || fail "runtime descriptor is invalid: $runtime_descriptor"
+fi
+
+run_unity() {
+    local response
+    local command_status
+
+    if response=$("$unity_executable" \
+        --format json \
+        --no-banner \
+        --non-interactive \
+        command \
+        "${target_selector[@]}" \
+        "$@" 2>&1); then
+        printf '%s\n' "$response"
+        return 0
+    else
+        command_status=$?
+        printf '%s\n' "$response" >&2
+        return "$command_status"
+    fi
+}
+
+require_success() {
+    local response=$1
+
+    if ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$response"; then
+        printf '%s\n' "$response" >&2
+        return 1
+    fi
+
+    if jq -e '.success == true and (.data.success // true) == true' >/dev/null 2>&1 <<<"$response"; then
+        return 0
+    fi
+
+    jq -c '{success, command, errors, warnings, data}' <<<"$response" >&2
+    return 1
+}
+
+print_result() {
+    local response=$1
+    require_success "$response"
+    jq -c '
+        .data.result as $result
+        | if ($result | type) == "string"
+          then (try ($result | fromjson) catch $result)
+          else $result
+          end
+    ' <<<"$response"
+}
+
+command_metadata() {
+    local catalog=$1
+    local command_name=$2
+
+    jq -ce --arg name "$command_name" '
+        [.data.commands[] | select(.name == $name)][0]
+        | select(. != null)
+    ' <<<"$catalog"
+}
+
+parameter_was_seen() {
+    local expected=$1
+    local seen_parameters=${2-}
+    local seen
+
+    [[ -n "$seen_parameters" ]] || return 1
+    while IFS= read -r seen; do
+        [[ "$seen" == "$expected" ]] && return 0
+    done <<<"$seen_parameters"
+    return 1
+}
+
+validate_run_arguments() {
+    local metadata=$1
+    shift
+    local flag
+    local parameter_name
+    local parameter_value
+    local valid_parameters
+    local required_parameter
+    local seen_parameters=''
+
+    valid_parameters=$(jq -r '[.parameters[].name] | join(", ")' <<<"$metadata")
+
+    while [[ $# -gt 0 ]]; do
+        flag=$1
+        shift
+        [[ "$flag" == --* ]] || fail "command arguments must use --PARAM VALUE pairs: $flag"
+        [[ "$flag" != *=* ]] || fail "use separate arguments instead of --PARAM=VALUE: $flag"
+        parameter_name=${flag#--}
+        [[ -n "$parameter_name" ]] || fail 'empty parameter name'
+
+        if ! jq -e --arg name "$parameter_name" 'any(.parameters[]; .name == $name)' >/dev/null 2>&1 <<<"$metadata"; then
+            fail "unknown parameter --$parameter_name; valid parameters: ${valid_parameters:-<none>}"
+        fi
+        if parameter_was_seen "$parameter_name" "$seen_parameters"; then
+            fail "duplicate parameter: --$parameter_name"
+        fi
+
+        [[ $# -gt 0 ]] || fail "missing value for --$parameter_name"
+        parameter_value=$1
+        shift
+        [[ -n "$parameter_value" ]] || fail "empty values are not preserved by this Unity CLI; omit optional --$parameter_name"
+        [[ "$parameter_value" != --* ]] || fail "values beginning with -- are not preserved by this Unity CLI: --$parameter_name"
+        if [[ -z "$seen_parameters" ]]; then
+            seen_parameters=$parameter_name
+        else
+            seen_parameters+=$'\n'$parameter_name
+        fi
+    done
+
+    while IFS= read -r required_parameter; do
+        if ! parameter_was_seen "$required_parameter" "$seen_parameters"; then
+            fail "missing required parameter: --$required_parameter"
+        fi
+    done < <(jq -r '.parameters[] | select(.required == true) | .name' <<<"$metadata")
+}
+
+validate_status_project() {
+    local status=$1
+    local reported_project
+
+    reported_project=$(jq -r '.projectPath // empty' <<<"$status")
+    [[ -n "$reported_project" ]] || fail 'Editor status did not report projectPath'
+    [[ "$reported_project" == "$project_path" ]] || fail "Editor status project mismatch: expected $project_path, got $reported_project"
+}
+
+validate_status_runtime() {
+    local status=$1
+    local build_guid
+    local platform
+    local unity_version
+    local expected_build_guid
+    local expected_platform
+    local expected_unity_version
+
+    jq -e '(.isPlaying // .IsPlaying // false) == true' >/dev/null 2>&1 <<<"$status" \
+        || fail 'Runtime status did not identify a playing Player'
+    build_guid=$(jq -r '.buildGuid // .BuildGuid // empty' <<<"$status")
+    platform=$(jq -r '.platform // .Platform // empty' <<<"$status")
+    unity_version=$(jq -r '.unityVersion // .UnityVersion // empty' <<<"$status")
+    [[ -n "$build_guid" ]] || fail 'Runtime status did not report buildGuid'
+    [[ -n "$platform" ]] || fail 'Runtime status did not report platform'
+    [[ -n "$unity_version" ]] || fail 'Runtime status did not report unityVersion'
+
+    if [[ -n "$runtime_descriptor_json" ]]; then
+        expected_build_guid=$(jq -r '.buildGuid' <<<"$runtime_descriptor_json")
+        expected_platform=$(jq -r '.platform' <<<"$runtime_descriptor_json")
+        expected_unity_version=$(jq -r '.unityVersion' <<<"$runtime_descriptor_json")
+        [[ "$build_guid" == "$expected_build_guid" ]] \
+            || fail "Runtime status build GUID mismatch: expected $expected_build_guid, got $build_guid"
+        [[ "$platform" == "$expected_platform" ]] \
+            || fail "Runtime status platform mismatch: expected $expected_platform, got $platform"
+        [[ "$unity_version" == "$expected_unity_version" ]] \
+            || fail "Runtime status Unity version mismatch: expected $expected_unity_version, got $unity_version"
+    fi
+}
+
+read_runtime_status() {
+    local response
+    local status
+
+    response=$(run_unity runtime_status)
+    status=$(print_result "$response")
+    validate_status_runtime "$status"
+    printf '%s\n' "$status"
+}
+
+validate_runtime_target() {
+    read_runtime_status >/dev/null
+}
+
+validate_schema_requirement() {
+    local metadata=$1
+    local requirement=$2
+    local parameter_name
+    local expected_type
+    local expected_required
+    local extra
+    local parameter
+    local actual_type
+    local actual_required
+
+    IFS=: read -r parameter_name expected_type expected_required extra <<<"$requirement"
+    [[ -n "$parameter_name" && -z "${extra:-}" ]] || fail "invalid schema requirement: $requirement"
+    if [[ -n "${expected_required:-}" && "$expected_required" != 'required' && "$expected_required" != 'optional' ]]; then
+        fail "schema requirement must end in required or optional: $requirement"
+    fi
+    if ! parameter=$(jq -ce --arg name "$parameter_name" '[.parameters[]? | select(.name == $name)][0] | select(. != null)' <<<"$metadata"); then
+        printf 'unity-cli: schema requirement failed: missing parameter %s\n' "$parameter_name" >&2
+        return 4
+    fi
+    if [[ -n "${expected_type:-}" ]]; then
+        actual_type=$(jq -r '.type // empty' <<<"$parameter")
+        if [[ "$actual_type" != "$expected_type" ]]; then
+            printf 'unity-cli: schema requirement failed: %s type is %s, expected %s\n' \
+                "$parameter_name" "${actual_type:-<missing>}" "$expected_type" >&2
+            return 4
+        fi
+    fi
+    if [[ -n "${expected_required:-}" ]]; then
+        actual_required=$(jq -r 'if .required == true then "required" else "optional" end' <<<"$parameter")
+        if [[ "$actual_required" != "$expected_required" ]]; then
+            printf 'unity-cli: schema requirement failed: %s is %s, expected %s\n' \
+                "$parameter_name" "$actual_required" "$expected_required" >&2
+            return 4
+        fi
+    fi
+}
+
+write_error_snapshot() {
+    local target=$1
+    local errors=$2
+    local parent
+    local basename
+    local temporary
+    local snapshot
+
+    parent=$(dirname "$target")
+    basename=$(basename "$target")
+    [[ -d "$parent" ]] || fail "snapshot parent directory does not exist: $parent"
+    [[ ! -L "$target" && ! -d "$target" ]] || fail "snapshot path must be a regular file path: $target"
+    snapshot=$(jq -cn \
+        --arg projectPath "$project_path" \
+        --arg capturedAtUtc "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+        --argjson errors "$errors" \
+        '{schemaVersion: 1, projectPath: $projectPath, capturedAtUtc: $capturedAtUtc, errors: $errors}')
+    temporary=$(mktemp "$parent/.$basename.tmp.XXXXXX") || fail "could not create snapshot temporary file in $parent"
+    if ! printf '%s\n' "$snapshot" >"$temporary" || ! mv -f "$temporary" "$target"; then
+        rm -f "$temporary"
+        fail "could not write error snapshot: $target"
+    fi
+    printf '%s\n' "$snapshot"
+}
+
+diff_error_snapshot() {
+    local target=$1
+    local current=$2
+    local baseline
+
+    [[ -f "$target" && ! -L "$target" ]] || fail "error snapshot is not a regular file: $target"
+    baseline=$(jq -ce \
+        --arg projectPath "$project_path" \
+        'select(.schemaVersion == 1 and .projectPath == $projectPath and (.errors | type) == "object")' \
+        "$target") || fail "error snapshot is invalid or belongs to another project: $target"
+    jq -cn --argjson baseline "$baseline" --argjson current "$current" '
+        ($baseline.errors.logs // [] | map(tojson)) as $seen
+        | [($current.logs // [])[]
+            | . as $log
+            | ($log | tojson) as $fingerprint
+            | select(($seen | index($fingerprint)) == null)
+          ] as $new
+        | ($baseline.errors.total // (($baseline.errors.logs // []) | length)) as $beforeTotal
+        | ($current.total // (($current.logs // []) | length)) as $afterTotal
+        | ([0, ($afterTotal - $beforeTotal)] | max) as $countDelta
+        | ([($new | length), $countDelta] | max) as $newCount
+        | {
+            ready: ($newCount == 0),
+            beforeTotal: $beforeTotal,
+            afterTotal: $afterTotal,
+            newCount: $newCount,
+            newLogs: $new
+          }
+    '
+}
+
+action=$1
+shift
+
+case "$action" in
+    status)
+        [[ $# -eq 0 ]] || fail 'status takes no arguments'
+        if [[ "$target_argument" == 'editor' ]]; then
+            status_response=$(run_unity editor_status)
+            status_result=$(print_result "$status_response")
+            validate_status_project "$status_result"
+            printf '%s\n' "$status_result"
+        else
+            read_runtime_status
+        fi
+        ;;
+
+    wait-ready)
+        [[ "$target_argument" == 'editor' ]] || fail 'wait-ready is only available for the editor target'
+        wait_timeout=60
+        wait_interval=1
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                --timeout)
+                    [[ $# -ge 2 ]] || fail '--timeout requires a positive integer'
+                    wait_timeout=$2
+                    shift 2
+                    ;;
+                --interval)
+                    [[ $# -ge 2 ]] || fail '--interval requires a positive integer'
+                    wait_interval=$2
+                    shift 2
+                    ;;
+                *)
+                    fail "unknown wait-ready argument: $1"
+                    ;;
+            esac
+        done
+        [[ "$wait_timeout" =~ ^[1-9][0-9]*$ ]] || fail '--timeout requires a positive integer'
+        [[ "$wait_interval" =~ ^[1-9][0-9]*$ ]] || fail '--interval requires a positive integer'
+        wait_started=$SECONDS
+        wait_last='Editor status was not queried'
+        while (( SECONDS - wait_started < wait_timeout )); do
+            if wait_response=$(run_unity editor_status 2>&1); then
+                if wait_status=$(print_result "$wait_response" 2>&1); then
+                    validate_status_project "$wait_status"
+                    wait_last=$wait_status
+                    if jq -e '
+                        .status == "ready"
+                        and (.compiling // false) == false
+                        and (.domainReloadInProgress // false) == false
+                    ' >/dev/null <<<"$wait_status"; then
+                        printf '%s\n' "$wait_status"
+                        exit 0
+                    fi
+                else
+                    wait_last=$wait_status
+                fi
+            else
+                wait_last=$wait_response
+            fi
+            sleep "$wait_interval"
+        done
+        printf 'unity-cli: Editor did not become ready within %s seconds: %s\n' "$wait_timeout" "$wait_last" >&2
+        exit 4
+        ;;
+
+    errors)
+        [[ "$target_argument" == 'editor' ]] || fail 'errors is only available for the editor target'
+        error_limit=100
+        error_snapshot=''
+        error_diff=''
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                --limit)
+                    [[ $# -ge 2 ]] || fail '--limit requires a positive integer'
+                    error_limit=$2
+                    shift 2
+                    ;;
+                --snapshot)
+                    [[ $# -ge 2 ]] || fail '--snapshot requires a file path'
+                    error_snapshot=$2
+                    shift 2
+                    ;;
+                --diff)
+                    [[ $# -ge 2 ]] || fail '--diff requires a file path'
+                    error_diff=$2
+                    shift 2
+                    ;;
+                *)
+                    fail "unknown errors argument: $1"
+                    ;;
+            esac
+        done
+        [[ "$error_limit" =~ ^[1-9][0-9]*$ ]] || fail '--limit requires a positive integer'
+        [[ -z "$error_snapshot" || -z "$error_diff" ]] || fail '--snapshot and --diff are mutually exclusive'
+        errors_response=$(run_unity get_console_logs --severity error --limit "$error_limit")
+        errors_result=$(print_result "$errors_response")
+        if [[ -n "$error_snapshot" ]]; then
+            write_error_snapshot "$error_snapshot" "$errors_result"
+        elif [[ -n "$error_diff" ]]; then
+            diff_error_snapshot "$error_diff" "$errors_result"
+        else
+            printf '%s\n' "$errors_result"
+        fi
+        ;;
+
+    find)
+        [[ "$target_argument" == 'editor' ]] || validate_runtime_target
+        [[ $# -gt 0 ]] || fail 'find requires at least one search term'
+        search_query=$*
+        catalog_response=$(run_unity)
+        require_success "$catalog_response"
+        matches=$(jq -c --arg query "$search_query" '
+            ($query | ascii_downcase | split(" ") | map(select(length > 0))) as $terms
+            | .data.commands[]
+            | . as $command
+            | (($command.name + " " + ($command.description // "")) | ascii_downcase) as $haystack
+            | select(reduce $terms[] as $term (true; . and ($haystack | contains($term))))
+            | {name: $command.name, description: $command.description}
+        ' <<<"$catalog_response")
+        if [[ -z "$matches" ]]; then
+            printf 'unity-cli: no commands matched: %s\n' "$search_query" >&2
+            exit 3
+        fi
+        printf '%s\n' "$matches"
+        ;;
+
+    schema)
+        [[ "$target_argument" == 'editor' ]] || validate_runtime_target
+        [[ $# -gt 0 ]] || fail 'schema requires a command name'
+        schema_command=$1
+        shift
+        schema_requirements=''
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                --require)
+                    [[ $# -ge 2 ]] || fail '--require needs NAME[:TYPE[:required|optional]]'
+                    if [[ -z "$schema_requirements" ]]; then
+                        schema_requirements=$2
+                    else
+                        schema_requirements+=$'\n'$2
+                    fi
+                    shift 2
+                    ;;
+                *)
+                    fail "unknown schema argument: $1"
+                    ;;
+            esac
+        done
+        catalog_response=$(run_unity)
+        require_success "$catalog_response"
+        if schema_metadata=$(command_metadata "$catalog_response" "$schema_command"); then
+            if [[ -n "$schema_requirements" ]]; then
+                while IFS= read -r schema_requirement; do
+                    validate_schema_requirement "$schema_metadata" "$schema_requirement"
+                done <<<"$schema_requirements"
+            fi
+            jq -c '
+                {
+                    name,
+                    description,
+                    mainThreadRequired,
+                    runtimeOnly,
+                    parameters,
+                    schema: (.schema as $raw
+                        | if ($raw | type) == "string"
+                          then (try ($raw | fromjson) catch $raw)
+                          else $raw
+                        end
+                    )
+                }
+            ' <<<"$schema_metadata"
+        else
+            printf 'unity-cli: command not found: %s\n' "$schema_command" >&2
+            exit 3
+        fi
+        ;;
+
+    run)
+        [[ "$target_argument" == 'editor' ]] || validate_runtime_target
+        [[ $# -gt 0 ]] || fail 'run requires a command name'
+        pipeline_command=$1
+        shift
+        catalog_response=$(run_unity)
+        require_success "$catalog_response"
+        if ! run_metadata=$(command_metadata "$catalog_response" "$pipeline_command"); then
+            printf 'unity-cli: command not found: %s\n' "$pipeline_command" >&2
+            exit 3
+        fi
+        validate_run_arguments "$run_metadata" "$@"
+        run_response=$(run_unity "$pipeline_command" "$@")
+        print_result "$run_response"
+        ;;
+
+    -h|--help|help)
+        usage
+        ;;
+
+    *)
+        fail "unknown action: $action"
+        ;;
+esac

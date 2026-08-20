@@ -1,0 +1,2413 @@
+{
+  "dslVersion": 1,
+  "name": "TestInventoryUI",
+  "canvas": {
+    "referenceResolution": [
+      1080,
+      1920
+    ]
+  },
+  "root": {
+    "name": "TestInventoryUI",
+    "nodeId": "node-171560752386becd",
+    "rect": {
+      "anchor": "stretch",
+      "offset": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "components": [
+      {
+        "type": "Image",
+        "color": "#2E3440FF"
+      }
+    ],
+    "children": [
+      {
+        "name": "panel - TitleBar",
+        "nodeId": "node-b54cda26a9728944",
+        "rect": {
+          "anchor": "topCenter",
+          "offset": [
+            0,
+            0
+          ],
+          "size": [
+            1080,
+            150
+          ]
+        },
+        "components": [
+          {
+            "type": "Image",
+            "color": "#242933FF"
+          }
+        ],
+        "children": [
+          {
+            "name": "txt - Title",
+            "nodeId": "node-538453d72f5e53bc",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                0,
+                0
+              ],
+              "size": [
+                400,
+                70
+              ]
+            },
+            "components": [
+              {
+                "type": "TMP_Text",
+                "text": "背 包",
+                "fontSize": 48,
+                "align": "center",
+                "vAlign": "middle",
+                "color": "#ECEFF4FF"
+              }
+            ]
+          },
+          {
+            "name": "txt - Gold",
+            "nodeId": "node-f1bbcd88b54a1e33",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                -340,
+                0
+              ],
+              "size": [
+                280,
+                50
+              ]
+            },
+            "components": [
+              {
+                "type": "TMP_Text",
+                "text": "金币 12,580",
+                "fontSize": 30,
+                "align": "left",
+                "vAlign": "middle",
+                "color": "#EBCB8BFF"
+              }
+            ]
+          },
+          {
+            "name": "btn - Close",
+            "nodeId": "node-8ff347393b35e8ab",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                470,
+                0
+              ],
+              "size": [
+                90,
+                90
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#BF616AFF"
+              },
+              {
+                "type": "Button"
+              }
+            ],
+            "children": [
+              {
+                "name": "txt - X",
+                "nodeId": "node-2e2ac0eac121b322",
+                "rect": {
+                  "anchor": "stretch",
+                  "offset": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "TMP_Text",
+                    "text": "×",
+                    "fontSize": 48,
+                    "align": "center",
+                    "vAlign": "middle",
+                    "color": "#ECEFF4FF"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "panel - TabBar",
+        "nodeId": "node-0000000085ebca77",
+        "rect": {
+          "anchor": "topCenter",
+          "offset": [
+            0,
+            170
+          ],
+          "size": [
+            1000,
+            96
+          ]
+        },
+        "components": [
+          {
+            "type": "ToggleGroup",
+            "allowSwitchOff": false
+          },
+          {
+            "type": "HorizontalLayoutGroup",
+            "padding": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "spacing": 16,
+            "childAlignment": "middleCenter",
+            "childControlWidth": true,
+            "childControlHeight": true,
+            "childForceExpandWidth": false,
+            "childForceExpandHeight": false
+          }
+        ],
+        "children": [
+          {
+            "name": "tab - 全部",
+            "nodeId": "node-08d12dfd52e51289",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                0,
+                0
+              ],
+              "size": [
+                230,
+                88
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#3B4252FF"
+              },
+              {
+                "type": "Toggle",
+                "isOn": true,
+                "targetGraphicNodeId": "node-08d12dfd52e51289",
+                "graphicNodeId": "node-6a99b44cccf94811",
+                "toggleGroupNodeId": "node-0000000085ebca77"
+              },
+              {
+                "type": "LayoutElement",
+                "preferredWidth": 230,
+                "preferredHeight": 88
+              }
+            ],
+            "children": [
+              {
+                "name": "Checkmark",
+                "nodeId": "node-6a99b44cccf94811",
+                "rect": {
+                  "anchor": "center",
+                  "offset": [
+                    -107,
+                    0
+                  ],
+                  "size": [
+                    8,
+                    72
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "Image",
+                    "color": "#88C0D0FF"
+                  }
+                ]
+              },
+              {
+                "name": "Label",
+                "nodeId": "node-a708a7aed8d0dd00",
+                "rect": {
+                  "anchor": "center",
+                  "offset": [
+                    6,
+                    0
+                  ],
+                  "size": [
+                    200,
+                    56
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "TMP_Text",
+                    "text": "全部",
+                    "fontSize": 32,
+                    "align": "center",
+                    "vAlign": "middle",
+                    "color": "#ECEFF4FF"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "tab - 装备",
+            "nodeId": "node-81af14c16a943c67",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                0,
+                0
+              ],
+              "size": [
+                230,
+                88
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#3B4252FF"
+              },
+              {
+                "type": "Toggle",
+                "isOn": false,
+                "targetGraphicNodeId": "node-81af14c16a943c67",
+                "graphicNodeId": "node-e3779b10e4a871ef",
+                "toggleGroupNodeId": "node-0000000085ebca77"
+              },
+              {
+                "type": "LayoutElement",
+                "preferredWidth": 230,
+                "preferredHeight": 88
+              }
+            ],
+            "children": [
+              {
+                "name": "Checkmark",
+                "nodeId": "node-e3779b10e4a871ef",
+                "rect": {
+                  "anchor": "center",
+                  "offset": [
+                    -107,
+                    0
+                  ],
+                  "size": [
+                    8,
+                    72
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "Image",
+                    "color": "#88C0D0FF"
+                  }
+                ]
+              },
+              {
+                "name": "Label",
+                "nodeId": "node-1fe68e72f08006de",
+                "rect": {
+                  "anchor": "center",
+                  "offset": [
+                    6,
+                    0
+                  ],
+                  "size": [
+                    200,
+                    56
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "TMP_Text",
+                    "text": "装备",
+                    "fontSize": 32,
+                    "align": "center",
+                    "vAlign": "middle",
+                    "color": "#ECEFF4FF"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "tab - 防具",
+            "nodeId": "node-fa8cfb8582436645",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                0,
+                0
+              ],
+              "size": [
+                230,
+                88
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#3B4252FF"
+              },
+              {
+                "type": "Toggle",
+                "isOn": false,
+                "targetGraphicNodeId": "node-fa8cfb8582436645",
+                "graphicNodeId": "node-5c5581d4fc579bcd",
+                "toggleGroupNodeId": "node-0000000085ebca77"
+              },
+              {
+                "type": "LayoutElement",
+                "preferredWidth": 230,
+                "preferredHeight": 88
+              }
+            ],
+            "children": [
+              {
+                "name": "Checkmark",
+                "nodeId": "node-5c5581d4fc579bcd",
+                "rect": {
+                  "anchor": "center",
+                  "offset": [
+                    -107,
+                    0
+                  ],
+                  "size": [
+                    8,
+                    72
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "Image",
+                    "color": "#88C0D0FF"
+                  }
+                ]
+              },
+              {
+                "name": "Label",
+                "nodeId": "node-98c47536082f30bd",
+                "rect": {
+                  "anchor": "center",
+                  "offset": [
+                    6,
+                    0
+                  ],
+                  "size": [
+                    200,
+                    56
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "TMP_Text",
+                    "text": "防具",
+                    "fontSize": 32,
+                    "align": "center",
+                    "vAlign": "middle",
+                    "color": "#ECEFF4FF"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "tab - 消耗品",
+            "nodeId": "node-736ae24999f29023",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                0,
+                0
+              ],
+              "size": [
+                230,
+                88
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#3B4252FF"
+              },
+              {
+                "type": "Toggle",
+                "isOn": false,
+                "targetGraphicNodeId": "node-736ae24999f29023",
+                "graphicNodeId": "node-d53368981406c5ac",
+                "toggleGroupNodeId": "node-0000000085ebca77"
+              },
+              {
+                "type": "LayoutElement",
+                "preferredWidth": 230,
+                "preferredHeight": 88
+              }
+            ],
+            "children": [
+              {
+                "name": "Checkmark",
+                "nodeId": "node-d53368981406c5ac",
+                "rect": {
+                  "anchor": "center",
+                  "offset": [
+                    -107,
+                    0
+                  ],
+                  "size": [
+                    8,
+                    72
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "Image",
+                    "color": "#88C0D0FF"
+                  }
+                ]
+              },
+              {
+                "name": "Label",
+                "nodeId": "node-11a25bfa1fde5a9b",
+                "rect": {
+                  "anchor": "center",
+                  "offset": [
+                    6,
+                    0
+                  ],
+                  "size": [
+                    200,
+                    56
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "TMP_Text",
+                    "text": "消耗品",
+                    "fontSize": 32,
+                    "align": "center",
+                    "vAlign": "middle",
+                    "color": "#ECEFF4FF"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "panel - ItemScrollRect",
+        "nodeId": "node-afd9d5aba5ca2512",
+        "rect": {
+          "anchor": "topCenter",
+          "offset": [
+            0,
+            290
+          ],
+          "size": [
+            1000,
+            1230
+          ]
+        },
+        "components": [
+          {
+            "type": "Image",
+            "color": "#242933FF"
+          },
+          {
+            "type": "ScrollRect",
+            "horizontal": false,
+            "vertical": true,
+            "movementType": "elastic",
+            "elasticity": 0.12,
+            "inertia": true,
+            "decelerationRate": 0.135,
+            "scrollSensitivity": 30,
+            "verticalScrollbarVisibility": "permanent",
+            "contentNodeId": "node-9e3779b10bd794ef",
+            "viewportNodeId": "node-3c6ef36291c35f66",
+            "verticalScrollbarNodeId": "node-daa66d1317af29de"
+          }
+        ],
+        "children": [
+          {
+            "name": "Viewport",
+            "nodeId": "node-3c6ef36291c35f66",
+            "rect": {
+              "anchor": "stretch",
+              "offset": [
+                8,
+                8,
+                40,
+                8
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#2E3440FF"
+              },
+              {
+                "type": "Mask",
+                "showMaskGraphic": true
+              }
+            ],
+            "children": [
+              {
+                "name": "Content",
+                "nodeId": "node-9e3779b10bd794ef",
+                "rect": {
+                  "anchor": "topCenter",
+                  "offset": [
+                    0,
+                    0
+                  ],
+                  "size": [
+                    940,
+                    1296
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "VerticalLayoutGroup",
+                    "padding": [
+                      8,
+                      8,
+                      8,
+                      8
+                    ],
+                    "spacing": 10,
+                    "childAlignment": "upperCenter",
+                    "childControlWidth": true,
+                    "childControlHeight": true,
+                    "childForceExpandWidth": true,
+                    "childForceExpandHeight": false
+                  },
+                  {
+                    "type": "ContentSizeFitter",
+                    "horizontalFit": "unconstrained",
+                    "verticalFit": "preferredSize"
+                  }
+                ],
+                "children": [
+                  {
+                    "name": "cell - 大刀",
+                    "nodeId": "node-4e114f5c2bb5ef8a",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#3B4252FF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-ec48c90db1a1ba01",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#A3BE8CFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-8a8042be378d8479",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "大刀",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-28b7bc6fbd794ef0",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "装备",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-c6ef362043651968",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x1",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-6c56f239a6d2e489",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 长枪",
+                    "nodeId": "node-6526afd1c950e3df",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#434C5EFF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-035e29824f3cae57",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#A3BE8CFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-a195a333d52878ce",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "长枪",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-3fcd1ce45b144346",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "装备",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-de049695e1000dbd",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x1",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-218217ff8e987c42",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 飞刀",
+                    "nodeId": "node-7c3c104666ebd835",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#3B4252FF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-1a7389f7ecd7a2ac",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#A3BE8CFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-b8ab03a872c36d24",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "飞刀",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-56e27d59f8af379b",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "装备",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-f519f70a7e9b0213",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x9",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-7a5da69ff5ad5e17",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 皮甲",
+                    "nodeId": "node-935170bb0486cc8b",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#434C5EFF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-3188ea6c8a729702",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#4C566AFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-cfc0641d105e617a",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "皮甲",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-6df7ddce964a2bf1",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "防具",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-0c2f577f1c35f669",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x1",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-8e27cd36433ea2ef",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 重甲",
+                    "nodeId": "node-aa66d130a221c0e0",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#3B4252FF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-489e4ae1280d8b58",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#4C566AFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-e6d5c492adf955cf",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "重甲",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-850d3e4333e52047",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "防具",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-2344b7f4b9d0eabe",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x1",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-1444657c3b4cbb74",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 护腿",
+                    "nodeId": "node-c17c31a53fbcb536",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#434C5EFF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-5fb3ab56c5a87fad",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#4C566AFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-fdeb25074b944a25",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "护腿",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-9c229eb8d180149c",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "防具",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-3a5a1869576bdf14",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x2",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-6f284c7079ca94d1",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 手套",
+                    "nodeId": "node-d891921add57a98b",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#3B4252FF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-76c90bcb63437403",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#4C566AFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-1500857ce92f3e7a",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "手套",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-b337ff2d6f1b08f2",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "防具",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-516f78def506d369",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x3",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-bfa6f615110fac7a",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 蓝瓶",
+                    "nodeId": "node-efa6f28f7af29de1",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#434C5EFF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-8dde6c4000de6859",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#5E81ACFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-2c15e5f186ca32d0",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "蓝瓶",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-ca4d5fa20cb5fd48",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "消耗品",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-6884d95392a1c7bf",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x7",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-24fa3684fffc367e",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 面包",
+                    "nodeId": "node-06bc5304188d9237",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#3B4252FF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-a4f3ccb59e795cae",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#D08770FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-432b466624652726",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "面包",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-e162c017aa50f19d",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "消耗品",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-7f9a39c8303cbc15",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x25",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-405aa507904d0359",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "cell - 治疗卷",
+                    "nodeId": "node-1dd1b379b628868c",
+                    "rect": {
+                      "anchor": "center",
+                      "offset": [
+                        0,
+                        0
+                      ],
+                      "size": [
+                        940,
+                        120
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#434C5EFF"
+                      },
+                      {
+                        "type": "LayoutElement",
+                        "preferredWidth": 940,
+                        "preferredHeight": 120
+                      },
+                      {
+                        "type": "Button"
+                      }
+                    ],
+                    "children": [
+                      {
+                        "name": "img - Icon",
+                        "nodeId": "node-bc092d2a3c145104",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -410,
+                            0
+                          ],
+                          "size": [
+                            96,
+                            96
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#B48EADFF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Name",
+                        "nodeId": "node-5a40a6dbc2001b7b",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            22
+                          ],
+                          "size": [
+                            356,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "治疗卷",
+                            "fontSize": 34,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#ECEFF4FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Category",
+                        "nodeId": "node-f878208c47ebe5f3",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -108,
+                            -26
+                          ],
+                          "size": [
+                            356,
+                            34
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "消耗品",
+                            "fontSize": 24,
+                            "align": "left",
+                            "vAlign": "middle",
+                            "color": "#81A1C1FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "txt - Count",
+                        "nodeId": "node-96af9a3dcdd7b06a",
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            400,
+                            0
+                          ],
+                          "size": [
+                            120,
+                            44
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "TMP_Text",
+                            "text": "x5",
+                            "fontSize": 30,
+                            "align": "right",
+                            "vAlign": "middle",
+                            "color": "#D8DEE9FF"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "img - Selected",
+                        "nodeId": "node-9e726971b3534d2e",
+                        "active": false,
+                        "rect": {
+                          "anchor": "center",
+                          "offset": [
+                            -324,
+                            0
+                          ],
+                          "size": [
+                            20,
+                            80
+                          ]
+                        },
+                        "components": [
+                          {
+                            "type": "Image",
+                            "color": "#88C0D0FF"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Scrollbar Vertical",
+            "nodeId": "node-daa66d1317af29de",
+            "rect": {
+              "anchor": "rightStretch",
+              "offset": [
+                6,
+                0
+              ],
+              "size": [
+                28,
+                0
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#3B4252FF"
+              },
+              {
+                "type": "Scrollbar",
+                "direction": "bottomToTop",
+                "size": 0.6,
+                "value": 1,
+                "handleRectNodeId": "node-78dde6c49d9af455",
+                "targetGraphicNodeId": "node-78dde6c49d9af455"
+              }
+            ],
+            "children": [
+              {
+                "name": "Sliding Area",
+                "nodeId": "node-34e713ee53c37ae2",
+                "rect": {
+                  "anchor": "stretch",
+                  "offset": [
+                    4,
+                    4,
+                    4,
+                    4
+                  ]
+                },
+                "children": [
+                  {
+                    "name": "Handle",
+                    "nodeId": "node-78dde6c49d9af455",
+                    "rect": {
+                      "anchor": "stretch",
+                      "offset": [
+                        0,
+                        0,
+                        0,
+                        0
+                      ]
+                    },
+                    "components": [
+                      {
+                        "type": "Image",
+                        "color": "#88C0D0FF"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "panel - Detail",
+        "nodeId": "node-d31e8d9fd9af4559",
+        "rect": {
+          "anchor": "bottomCenter",
+          "offset": [
+            0,
+            44
+          ],
+          "size": [
+            1000,
+            330
+          ]
+        },
+        "components": [
+          {
+            "type": "Image",
+            "color": "#242933FF"
+          }
+        ],
+        "children": [
+          {
+            "name": "img - DetailIcon",
+            "nodeId": "node-715607505f9b0fd1",
+            "rect": {
+              "anchor": "topCenter",
+              "offset": [
+                -400,
+                20
+              ],
+              "size": [
+                140,
+                140
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#A3BE8CFF"
+              }
+            ]
+          },
+          {
+            "name": "txt - DetailName",
+            "nodeId": "node-0f8d8101e586da48",
+            "rect": {
+              "anchor": "topCenter",
+              "offset": [
+                -60,
+                24
+              ],
+              "size": [
+                520,
+                56
+              ]
+            },
+            "components": [
+              {
+                "type": "TMP_Text",
+                "text": "请选择物品",
+                "fontSize": 40,
+                "align": "left",
+                "vAlign": "middle",
+                "color": "#ECEFF4FF"
+              }
+            ]
+          },
+          {
+            "name": "txt - DetailDesc",
+            "nodeId": "node-adc4fab26b72a4c0",
+            "rect": {
+              "anchor": "topCenter",
+              "offset": [
+                -60,
+                96
+              ],
+              "size": [
+                520,
+                120
+              ]
+            },
+            "components": [
+              {
+                "type": "TMP_Text",
+                "text": "点击左侧列表中的物品\n查看详细信息。",
+                "fontSize": 26,
+                "align": "left",
+                "vAlign": "top",
+                "color": "#D8DEE9FF"
+              }
+            ]
+          },
+          {
+            "name": "btn - 使用",
+            "nodeId": "node-4bfc7463f15e6f37",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                150,
+                -90
+              ],
+              "size": [
+                180,
+                80
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#A3BE8CFF"
+              },
+              {
+                "type": "Button"
+              }
+            ],
+            "children": [
+              {
+                "name": "txt - Label",
+                "nodeId": "node-ea33ee14774a39af",
+                "rect": {
+                  "anchor": "stretch",
+                  "offset": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "TMP_Text",
+                    "text": "使用",
+                    "fontSize": 32,
+                    "align": "center",
+                    "vAlign": "middle",
+                    "color": "#2E3440FF"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "btn - 出售",
+            "nodeId": "node-886b67c5fd360426",
+            "rect": {
+              "anchor": "center",
+              "offset": [
+                370,
+                -90
+              ],
+              "size": [
+                180,
+                80
+              ]
+            },
+            "components": [
+              {
+                "type": "Image",
+                "color": "#D08770FF"
+              },
+              {
+                "type": "Button"
+              }
+            ],
+            "children": [
+              {
+                "name": "txt - Label",
+                "nodeId": "node-26a2e1768321ce9e",
+                "rect": {
+                  "anchor": "stretch",
+                  "offset": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                },
+                "components": [
+                  {
+                    "type": "TMP_Text",
+                    "text": "出售",
+                    "fontSize": 32,
+                    "align": "center",
+                    "vAlign": "middle",
+                    "color": "#2E3440FF"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "txt - DetailPrice",
+            "rect": {
+              "anchor": "topCenter",
+              "offset": [
+                360,
+                170
+              ],
+              "size": [
+                240,
+                44
+              ]
+            },
+            "components": [
+              {
+                "type": "TMP_Text",
+                "text": "售价：- 金币",
+                "fontSize": 26,
+                "align": "left",
+                "vAlign": "middle",
+                "color": "#EBCB8BFF"
+              }
+            ],
+            "nodeId": "node-033d8b0e292a4cb0"
+          }
+        ]
+      },
+      {
+        "name": "txt - Hint",
+        "nodeId": "node-c4da5b27090d9916",
+        "rect": {
+          "anchor": "bottomCenter",
+          "offset": [
+            0,
+            6
+          ],
+          "size": [
+            900,
+            30
+          ]
+        },
+        "components": [
+          {
+            "type": "TMP_Text",
+            "text": "拖动物品列表可上下滚动，点击页签筛选分类，点击物品查看详情，选中后可使用或出售",
+            "fontSize": 22,
+            "align": "center",
+            "vAlign": "middle",
+            "color": "#4C566AFF"
+          }
+        ]
+      }
+    ]
+  }
+}
