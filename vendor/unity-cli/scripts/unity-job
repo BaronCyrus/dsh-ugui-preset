@@ -505,7 +505,11 @@ def validate_completion(project: Path, raw_job: str | Path) -> dict:
 
 
 def wrapper_command(project: Path, unity: Path | None, arguments: list[str]) -> list[str]:
-    command = [str(UNITY_CLI_WRAPPER), "--project", str(project)]
+    # Windows 无 bash/jq：走 Python 移植版入口
+    if os.name == "nt":
+        command = [sys.executable, str(SKILL_ROOT / "scripts" / "unity-cli.py"), "--project", str(project)]
+    else:
+        command = [str(UNITY_CLI_WRAPPER), "--project", str(project)]
     if unity is not None:
         command.extend(["--unity", str(unity)])
     command.extend(arguments)

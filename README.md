@@ -14,16 +14,18 @@
 
 - DSH（DeepSeek Harness）Web 部署
 - 一个运行中的 Unity 工程（已用 Unity Editor 打开；当前语义缓存钉住 uGUI 2.0.0 / Unity 6000.3，其他版本按文档过期流程重核即可）
-- macOS/Linux（unity-cli 脚本为 bash + python3）
+- Unity 官方 CLI（`unity` 在 PATH 上）
+- **macOS / Linux / Windows 均支持**（macOS/Linux 走 bash 入口；Windows 自动切换到 `unity-cli.py` Python 入口，需要 Python 3；无需 bash/jq）
 
 ## 安装
 
 ```bash
 # 1. 克隆到 DSH preset 目录（DSH 按目录发现 preset）
-git clone <repo-url> ~/.dsh/.agent-presets/ugui
+git clone https://github.com/BaronCyrus/dsh-ugui-preset.git ~/.dsh/.agent-presets/ugui
+#    Windows PowerShell: git clone ... "$env:USERPROFILE\.dsh\.agent-presets\ugui"
 
-# 2. 注册浏览器端插件包（幂等）
-bash ~/.dsh/.agent-presets/ugui/setup/install.sh
+# 2. 注册浏览器端插件包（跨平台，幂等）
+node ~/.dsh/.agent-presets/ugui/setup/install.mjs
 
 # 3. 配置目标 Unity 工程
 cd ~/.dsh/.agent-presets/ugui
@@ -51,8 +53,8 @@ cp setup/ugui.config.example.json ugui.config.json
 │   ├── test/                       # 行为测试（npm test）
 │   ├── COMPONENTS.md               # DSL 组件契约
 │   └── UNITY_SEMANTICS.md          # uGUI 交互语义本地缓存（按组件分节，含版本钉）
-├── vendor/unity-cli/               # 内嵌的 Unity Editor 控制通道（bash + python3）
-├── setup/install.sh                # Web Profile link 依赖注册
+├── vendor/unity-cli/               # 内嵌的 Unity Editor 控制通道（bash 入口 + Windows 用 Python 移植入口）
+├── setup/install.mjs               # Web Profile link 依赖注册（跨平台 Node 脚本）
 ├── setup/ugui.config.example.json  # 工程配置样例
 └── fixtures/canvases/              # 示例画布（测试背包：DSL + 逻辑 + 视图脚本三件套）
 ```

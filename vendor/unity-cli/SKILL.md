@@ -9,6 +9,8 @@ Resolve bundled paths relative to the directory containing this loaded `SKILL.md
 
 Use the bundled `{skillRoot}/scripts/unity-cli` wrapper as a tight loop over the selected target's dynamic Pipeline catalog. Keep that catalog as the single source of truth: bind one target, then discover current commands and one schema at a time. Resolve referenced Markdown files and `scripts/unity-job` from the same `{skillRoot}`.
 
+> **Windows**: the bash wrapper and `jq` are POSIX-only. Use the Python port instead — `python {skillRoot}/scripts/unity-cli.py ...`（参数完全一致）；`unity-job` 内部会自动切换。
+
 ## Editor Tight Loop
 
 1. Bind the intended Editor.

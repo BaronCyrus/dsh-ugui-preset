@@ -28,6 +28,13 @@ const SEMANTICS_DOC_PATH = PLUGIN_DIR === null ? null : join(PLUGIN_DIR, 'UNITY_
 const WORKER_PATH = PLUGIN_DIR === null ? null : join(PLUGIN_DIR, 'unity', 'BuildUiWorker.cs')
 const UNITY_JOB = PRESET_ROOT === null ? null : join(PRESET_ROOT, 'vendor', 'unity-cli', 'scripts', 'unity-job')
 const UNITY_CLI = PRESET_ROOT === null ? null : join(PRESET_ROOT, 'vendor', 'unity-cli', 'scripts', 'unity-cli')
+const UNITY_CLI_PY = PRESET_ROOT === null ? null : join(PRESET_ROOT, 'vendor', 'unity-cli', 'scripts', 'unity-cli.py')
+const IS_WINDOWS = process.platform === 'win32'
+const PYTHON = IS_WINDOWS ? 'python' : 'python3'
+// Windows 无 bash/jq：unity-cli 走 Python 移植版；其余平台直接执行 bash 入口
+function unityCliArgv(args) {
+	return IS_WINDOWS ? [PYTHON, UNITY_CLI_PY, ...args] : [UNITY_CLI, ...args]
+}
 
 const DEFAULT_CONFIG = {
 	scratchDir: '.scratch/ui-dsl',
@@ -1255,7 +1262,7 @@ async function awaitEditorScriptCompile(baselinePath, stagedAt) {
 	const assemblyPath = ASSEMBLY_DLL
 	const deadline = Date.now() + 180000
 	for (;;) {
-		const status = await run([UNITY_CLI, '--project', PROJECT, 'status'], 30000)
+		const status = await run(unityCliArgv(['--project', PROJECT, 'status']), 30000)
 		let state = null
 		try { state = JSON.parse(status.stdout) } catch {}
 		const settled = state !== null && state.status === 'ready' && state.compiling === false && state.domainReloadInProgress === false
@@ -1269,7 +1276,7 @@ async function awaitEditorScriptCompile(baselinePath, stagedAt) {
 		}
 		await new Promise((resolve) => setTimeout(resolve, 1500))
 	}
-	const diff = await run([UNITY_CLI, '--project', PROJECT, 'errors', '--diff', baselinePath, '--limit', '50'], 30000)
+	const diff = await run(unityCliArgv(['--project', PROJECT, 'errors', '--diff', baselinePath, '--limit', '50']), 30000)
 	if (diff.code === 0) {
 		try {
 			const value = JSON.parse(diff.stdout)
@@ -1352,7 +1359,7 @@ async function executeEditorPatch(args) {
 async function runUnityJob(action, inputs) {
 	const prepared = await run(
 		[
-			'python3', UNITY_JOB, 'prepare',
+			PYTHON, UNITY_JOB, 'prepare',
 			'--project', PROJECT,
 			'--source', WORKER_PATH,
 			'--entry-type', 'UguiJobs.BuildUiWorker',
@@ -1368,7 +1375,7 @@ async function runUnityJob(action, inputs) {
 	const { jobId } = parseJson(prepared.stdout, 'unity-job prepare')
 	const submitted = await run(
 		[
-			'python3', UNITY_JOB, 'submit',
+			PYTHON, UNITY_JOB, 'submit',
 			'--project', PROJECT,
 			'--job', jobId,
 			'--confirm',
@@ -1410,7 +1417,7 @@ async function executeBuild(args) {
 		}
 
 		const baselinePath = join(DSL_DIR, `.console-baseline-${process.pid}-${Date.now()}.json`)
-		await run([UNITY_CLI, '--project', PROJECT, 'errors', '--snapshot', baselinePath, '--limit', '100'], 30000)
+		await run(unityCliArgv(['--project', PROJECT, 'errors', '--snapshot', baselinePath, '--limit', '100']), 30000)
 		const stagedAt = Date.now()
 		const logic = await stageLogicScriptsForBuild(canvasId, uiName)
 		if (logic.staged && logic.changed) {
@@ -1444,7 +1451,7 @@ async function executeBuild(args) {
 
 		let screenshot = null
 		try {
-			const shot = await run([UNITY_CLI, '--project', PROJECT, 'run', 'screenshot'], 90000)
+			const shot = await run(unityCliArgv(['--project', PROJECT, 'run', 'screenshot']), 90000)
 			screenshot = shot.code === 0 ? parseJson(shot.stdout, 'screenshot') : { error: shot.stderr.slice(-500) }
 		} catch (error) {
 			screenshot = { error: String(error.message ?? error).slice(0, 300) }
@@ -1527,7 +1534,7 @@ async function executeInteractionSemantics(args) {
 async function executeScreenshot(args) {
 	try {
 		const view = typeof args?.view === 'string' && args.view !== '' ? args.view : 'game'
-		const shot = await run([UNITY_CLI, '--project', PROJECT, 'run', 'screenshot', '--view', view], 90000)
+		const shot = await run(unityCliArgv(['--project', PROJECT, 'run', 'screenshot', '--view', view]), 90000)
 		if (shot.code !== 0) {
 			return { ok: false, error: shot.stderr.slice(-1500) || shot.stdout.slice(-1500), impl: IMPL }
 		}
