@@ -74,6 +74,8 @@ cd plugins/dsh-ugui-tools && npm test
 
 注意：`ugui.config.json` 存在且指向真实工程时，语义缓存新鲜度测试会对该工程生效。修改 host.js 后需递增 `agent.cordis.yml` 中 host 行的 `?v=` 查询参数。
 
+架构与生命周期约定见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+
 ## 商业支持
 
 本 preset 以 MIT 协议免费开放全部功能（含商用）。如果你的团队需要以下服务，欢迎联系洽谈：
