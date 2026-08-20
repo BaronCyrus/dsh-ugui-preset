@@ -66,9 +66,9 @@ for (const snippet of [
 ])
   assert.ok(hostSource.includes(snippet), `host.js 缺少片段: ${snippet}`)
 
-// client 预览器片段：DSL active:false 并入初始隐藏集合；构建按钮旁的逻辑同步徽章（1.5s 纯显示轮询 + 点击生成后立即刷新）
+// client 预览器片段：DSL active:false 并入初始隐藏集合；构建按钮旁的逻辑同步徽章（1.5s 纯显示轮询 + 点击生成后立即刷新）；slots 硬依赖声明（入口按钮冷启动缺失的修复）
 const clientSource = await readFile(new URL('lib/client.js', packageRoot), 'utf8')
-for (const snippet of ['collectInactive', 'node.active === false', 'LogicSyncBadge', '/local/ugui-sync?canvasId=', 'uguiSide_syncBadge', '子代理核对中', 'refreshToken', 'syncRefreshToken'])
+for (const snippet of ['collectInactive', 'node.active === false', 'LogicSyncBadge', '/local/ugui-sync?canvasId=', 'uguiSide_syncBadge', '子代理核对中', 'refreshToken', 'syncRefreshToken', 'exports.inject = ["slots"]'])
   assert.ok(clientSource.includes(snippet), `client.js 缺少片段: ${snippet}`)
 
 // worker 源码片段：挂载与绑定

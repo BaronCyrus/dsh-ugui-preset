@@ -3451,6 +3451,10 @@ window.__ModuleLoader__.load({
 			));
 		}
 
+		// slots 是硬依赖：声明 inject 让 fiber 等 slots 服务就绪后再跑 apply。
+		// 不声明时冷启动的 fiber 启动顺序是赌局——apply 在 slots 之前执行会静默早退，
+		// 入口按钮整页缺失（首次启动不显示、刷新后出现的根因）。
+		exports.inject = ["slots"];
 		exports.apply = apply;
 		return module.exports;
 	}
