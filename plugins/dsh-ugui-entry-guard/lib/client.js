@@ -6,11 +6,15 @@ window.__ModuleLoader__.load({
 		const react = require("react");
 
 		const RELOAD_FLAG_PREFIX = "ugui-entry-guard:reloaded:";
-		const GRACE_MS = 2500;
+		// 清单含 ugui 行时的兜底缓冲：守卫的首次渲染发生在 boot settle 之后，
+		// bundle 此时已经物化，只需极短余量覆盖边界竞态
+		const PRESENT_GRACE_MS = 500;
 
 		// 常驻入口守卫：当前会话是 ugui preset 但入口按钮（[data-ugui-entry]）缺失时，
-		// 主动刷新一次页面触发重新挂载。覆盖「重启后首屏清单不含 ugui client 行」等一切
-		// bundle 未到达的场景；sessionStorage 防刷新死循环，真故障时告警而不是死循环。
+		// 主动刷新一次页面触发重新挂载。分两种情况：
+		// 1. 启动清单不含 ugui client 行（standing mount 未建立）→ 按钮不可能出现，立即刷新；
+		// 2. 清单含行但按钮仍未渲染（bundle 加载失败）→ 短缓冲后刷新一次。
+		// sessionStorage 防刷新死循环，真故障时告警而不是死循环。
 		function UguiEntryGuard(props) {
 			const current = props.useSessions((state) => {
 				const id = state && state.current;
@@ -19,6 +23,11 @@ window.__ModuleLoader__.load({
 			});
 			react.useEffect(() => {
 				if (!current || current.agentPreset !== "ugui") return undefined;
+				const entryPresent = Boolean(
+					window.__DSH_BOOT__
+					&& Array.isArray(window.__DSH_BOOT__.entries)
+					&& window.__DSH_BOOT__.entries.some((entry) => entry && entry.id === "dsh-local-ugui-tools")
+				);
 				const timer = setTimeout(() => {
 					if (document.querySelector("[data-ugui-entry]")) return;
 					const flagKey = RELOAD_FLAG_PREFIX + current.id;
@@ -28,7 +37,7 @@ window.__ModuleLoader__.load({
 					}
 					sessionStorage.setItem(flagKey, "1");
 					location.reload();
-				}, GRACE_MS);
+				}, entryPresent ? PRESENT_GRACE_MS : 0);
 				return () => clearTimeout(timer);
 			}, [current && current.id, current && current.agentPreset]);
 			return null;
