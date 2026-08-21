@@ -14,6 +14,7 @@
 
 - uGUI 模型工具仅对选择 `ugui` Preset 的 Session 可见。
 - 浏览器“UGUI制作模式”入口会读取当前 Session 的 `agentPreset`，仅在值为 `ugui` 时显示。Client 插件必须声明 `inject: ['slots']`（fiber 等待服务就绪），否则冷启动时入口按钮会因时序竞争静默缺失。
+- 重启后**首屏**启动清单可能尚未包含 preset client 行（standing mount 由会话挂载触发）：`plugins/dsh-ugui-entry-guard` 作为 Web Profile 常驻包监视当前会话，发现 ugui 会话入口按钮（`[data-ugui-entry]`）缺失时自动刷新一次页面（sessionStorage 防死循环）。
 - 图片与 DSL 默认只暂存；只有用户明确生成 Prefab，或明确进行构建测试时，才调用 Unity CLI 并导入 `Assets/Sprites/<UIName>/`。
 
 ## 多 Canvas Workspace

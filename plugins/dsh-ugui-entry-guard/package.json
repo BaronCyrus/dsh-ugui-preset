@@ -1,0 +1,18 @@
+{
+  "name": "dsh-local-ugui-entry-guard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Watches that the UGUI制作模式 entry button materializes for ugui sessions and reloads the page once when it does not (cold-start boot-manifest gap).",
+  "type": "module",
+  "main": "lib/host-noop.js",
+  "exports": {
+    ".": "./lib/host-noop.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  }
+}

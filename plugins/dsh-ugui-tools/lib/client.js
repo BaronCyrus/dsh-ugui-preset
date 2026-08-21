@@ -3422,7 +3422,7 @@ window.__ModuleLoader__.load({
 					h("span", null, tab === "designer" ? "Ctrl/⌘+Z 撤销拖动/缩放；拖系统标题栏移动窗口" : tab === "previewer" ? "预览器交互仅模拟运行，不写入 DSL；「重置状态」可还原初始值" : "拖系统标题栏移动独立窗口")));
 
 			const renderedPanel = panel && popoutActive ? reactDom.createPortal(panel, popout.mount) : null;
-			return h("div", { ref: rootRef, className: wide ? "uguiSide_root" : "uguiSide_root uguiSide_rail" },
+			return h("div", { ref: rootRef, className: wide ? "uguiSide_root" : "uguiSide_root uguiSide_rail", "data-ugui-entry": true },
 				renderedPanel,
 				h("button", {
 					type: "button",

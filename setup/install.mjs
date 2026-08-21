@@ -17,7 +17,6 @@ const PRESET_ID = PRESET_DIR.split(sep).pop()
 const DSH_HOME_DIR = process.env.DSH_HOME || join(homedir(), '.dsh')
 const PRESETS_DIR = join(DSH_HOME_DIR, '.agent-presets')
 const PROFILE_PKG = join(DSH_HOME_DIR, 'profiles', 'web', 'package.json')
-const PACKAGE_NAME = 'dsh-local-ugui-tools'
 
 if (dirname(PRESET_DIR) !== PRESETS_DIR) {
 	console.error(`⚠️  本仓库不在 ${PRESETS_DIR} 下。DSH 只发现该目录里的 preset，请先移动：`)
@@ -31,15 +30,50 @@ if (!existsSync(PROFILE_PKG)) {
 }
 
 // link 目标使用 posix 相对路径（pnpm 在 Windows 上同样接受正斜杠）
-const linkTarget = `link:../../.agent-presets/${PRESET_ID}/plugins/dsh-ugui-tools`
+const LINK_PACKAGES = [
+	['dsh-local-ugui-tools', 'dsh-ugui-tools'],
+	['dsh-local-ugui-entry-guard', 'dsh-ugui-entry-guard'],
+]
 const pkg = JSON.parse(readFileSync(PROFILE_PKG, 'utf8'))
 pkg.dependencies = pkg.dependencies || {}
-if (pkg.dependencies[PACKAGE_NAME] === linkTarget) {
-	console.log('= Web Profile link 依赖已存在，跳过写入')
+let changed = false
+for (const [name, dir] of LINK_PACKAGES) {
+	const linkTarget = `link:../../.agent-presets/${PRESET_ID}/plugins/${dir}`
+	if (pkg.dependencies[name] !== linkTarget) {
+		pkg.dependencies[name] = linkTarget
+		changed = true
+		console.log(`+ 已写入 ${name}: ${linkTarget}`)
+	} else {
+		console.log(`= ${name} link 依赖已存在，跳过`)
+	}
+}
+if (changed) writeFileSync(PROFILE_PKG, JSON.stringify(pkg, null, 2) + '\n')
+
+// cordis.patch.yml 中确保 ugui-entry-guard 常驻行存在（入口守卫：首屏清单缺 ugui 时自动刷新一次）
+const PATCH_PATH = join(DSH_HOME_DIR, 'profiles', 'web', 'cordis.patch.yml')
+const GUARD_INSERT = [
+	'    # UGUI 入口守卫（常驻）：当前会话是 ugui preset 但入口按钮缺失时主动刷新一次页面，',
+	'    # 覆盖重启后首屏启动清单尚未包含 ugui client 行的冷启动缺口。',
+	'    - id: ugui-entry-guard',
+	'      name: dsh-local-ugui-entry-guard',
+].join('\n')
+if (existsSync(PATCH_PATH)) {
+	const patchText = readFileSync(PATCH_PATH, 'utf8')
+	if (!patchText.includes('dsh-local-ugui-entry-guard')) {
+		const anchor = /^(\s*name: dsh-local-session-delete\s*)$/m
+		if (anchor.test(patchText)) {
+			writeFileSync(PATCH_PATH, patchText.replace(anchor, (match) => match + '\n' + GUARD_INSERT))
+			console.log('+ cordis.patch.yml 已插入 ugui-entry-guard 常驻行')
+		} else {
+			console.warn('⚠️  未能在 cordis.patch.yml 自动插入常驻行（未找到锚点），请手动在 patch insert 列表添加：')
+			console.warn(GUARD_INSERT)
+		}
+	} else {
+		console.log('= cordis.patch.yml 已含 ugui-entry-guard 行，跳过')
+	}
 } else {
-	pkg.dependencies[PACKAGE_NAME] = linkTarget
-	writeFileSync(PROFILE_PKG, JSON.stringify(pkg, null, 2) + '\n')
-	console.log(`+ 已写入 ${PACKAGE_NAME}: ${linkTarget}`)
+	console.warn(`⚠️  未找到 ${PATCH_PATH}，请手动在 patch insert 列表添加：`)
+	console.warn(GUARD_INSERT)
 }
 
 console.log('→ 执行 pnpm install 建立 link…')

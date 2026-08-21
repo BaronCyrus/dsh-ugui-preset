@@ -55,6 +55,7 @@ cp setup/ugui.config.example.json ugui.config.json
 ├── preset.yml / agent.cordis.yml   # preset 元数据与组合（persona、工具行）
 ├── ugui.config.json                # 你的工程配置（不入库；参考 setup/ugui.config.example.json）
 ├── plugins/dsh-ugui-tools/         # 主插件：host 工具/路由 + 浏览器设计器/预览器
+├── plugins/dsh-ugui-entry-guard/   # 入口守卫（web profile 常驻）：入口按钮缺失时自动刷新一次页面
 │   ├── lib/                        # host.js（工具与构建管线）/ client.js（设计器与预览器）
 │   ├── unity/BuildUiWorker.cs      # Unity 侧构建 worker（经 unity-cli 任务在工程内执行）
 │   ├── test/                       # 行为测试（npm test）
